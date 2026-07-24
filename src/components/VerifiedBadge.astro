@@ -1,0 +1,30 @@
+---
+import { needsReverification } from '../lib/verification';
+
+interface Props {
+  lastVerified: Date | null;
+  class?: string;
+}
+
+const { lastVerified, class: className = '' } = Astro.props;
+const stale = needsReverification(lastVerified);
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+---
+
+{
+  lastVerified === null ? (
+    <p class={`text-xs font-medium text-charcoal-500 ${className}`}>Terms not yet verified</p>
+  ) : (
+    <div class={className}>
+      <p class="text-xs text-charcoal-500">Terms last verified {formatDate(lastVerified)}</p>
+      {stale && (
+        <p class="mt-0.5 text-xs font-medium text-amber-700">
+          More than 90 days ago — verify current terms with the issuer before applying.
+        </p>
+      )}
+    </div>
+  )
+}

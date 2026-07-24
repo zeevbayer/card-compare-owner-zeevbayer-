@@ -1,0 +1,85 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const articles = (await getCollection('articles')).sort(
+  (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime()
+);
+
+const categories = [...new Set(articles.map((a) => a.data.category))].sort();
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+---
+
+<BaseLayout
+  title="Articles"
+  description="Analytical, number-driven explainers on how credit card terms actually work."
+>
+  <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <h1 class="font-serif-heading text-3xl font-semibold text-navy-900">Articles</h1>
+    <p class="mt-2 text-charcoal-700">Explainers on the terms and mechanics card issuers rely on you not reading closely.</p>
+
+    <div class="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+      <button type="button" data-category-filter="" class="rounded-full border border-navy-900 bg-navy-900 px-3 py-1 text-xs font-medium text-paper">
+        All
+      </button>
+      {
+        categories.map((cat) => (
+          <button
+            type="button"
+            data-category-filter={cat}
+            class="rounded-full border border-charcoal-300 px-3 py-1 text-xs font-medium text-charcoal-700 hover:border-navy-900"
+          >
+            {cat}
+          </button>
+        ))
+      }
+    </div>
+
+    <div class="mt-8 space-y-6">
+      {
+        articles.map((article) => (
+          <article data-article data-category={article.data.category} class="border-b border-charcoal-300/60 pb-6">
+            <p class="text-xs uppercase tracking-wide text-charcoal-500">
+              {article.data.category} · {formatDate(article.data.publishDate)}
+            </p>
+            <h2 class="font-serif-heading mt-1 text-xl font-semibold text-navy-900">
+              <a href={`/articles/${article.id}`} class="hover:text-amber-700">
+                {article.data.title}
+              </a>
+            </h2>
+            <p class="mt-2 text-charcoal-700">{article.data.description}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-category-filter]');
+  const articles = document.querySelectorAll<HTMLElement>('[data-article]');
+
+  function setActive(active: HTMLButtonElement) {
+    buttons.forEach((btn) => {
+      const isActive = btn === active;
+      btn.classList.toggle('bg-navy-900', isActive);
+      btn.classList.toggle('text-paper', isActive);
+      btn.classList.toggle('border-navy-900', isActive);
+      btn.classList.toggle('text-charcoal-700', !isActive);
+      btn.classList.toggle('border-charcoal-300', !isActive);
+    });
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const category = btn.dataset.categoryFilter ?? '';
+      articles.forEach((el) => {
+        el.classList.toggle('hidden', Boolean(category) && el.dataset.category !== category);
+      });
+      setActive(btn);
+    });
+  });
+</script>

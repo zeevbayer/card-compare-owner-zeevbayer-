@@ -1,0 +1,146 @@
+---
+import { CATEGORIES, TIERS } from '../lib/categories';
+import type { FinderFilters } from '../lib/finder';
+
+interface Props {
+  filters: FinderFilters;
+  issuers: { slug: string; label: string }[];
+}
+
+const { filters, issuers } = Astro.props;
+const tierSet = new Set(filters.tier ?? []);
+const issuerSet = new Set(filters.issuer ?? []);
+
+const feeOptions = [
+  { value: '', label: 'Any annual fee' },
+  { value: '0', label: '$0 only' },
+  { value: '95', label: 'Up to $95' },
+  { value: '250', label: 'Up to $250' },
+];
+
+const sortOptions = [
+  { value: '', label: 'Default' },
+  { value: 'annual-fee', label: 'Annual fee' },
+  { value: 'intro-apr-length', label: 'Intro APR length' },
+  { value: 'signup-bonus', label: 'Signup bonus' },
+];
+---
+
+<form method="get" action="/finder" class="space-y-5 rounded-lg border border-charcoal-300/60 bg-white p-5">
+  <div>
+    <label for="category" class="text-xs font-medium uppercase tracking-wide text-charcoal-500">
+      Category
+    </label>
+    <select
+      id="category"
+      name="category"
+      class="mt-1 w-full rounded border border-charcoal-300 bg-white px-3 py-2 text-sm"
+    >
+      <option value="">All categories</option>
+      {
+        CATEGORIES.map((c) => (
+          <option value={c.slug} selected={filters.category === c.slug}>
+            {c.label}
+          </option>
+        ))
+      }
+    </select>
+  </div>
+
+  <div>
+    <label for="feeMax" class="text-xs font-medium uppercase tracking-wide text-charcoal-500">
+      Annual fee
+    </label>
+    <select
+      id="feeMax"
+      name="feeMax"
+      class="mt-1 w-full rounded border border-charcoal-300 bg-white px-3 py-2 text-sm"
+    >
+      {
+        feeOptions.map((opt) => (
+          <option value={opt.value} selected={String(filters.feeMax ?? '') === opt.value}>
+            {opt.label}
+          </option>
+        ))
+      }
+    </select>
+  </div>
+
+  <fieldset>
+    <legend class="text-xs font-medium uppercase tracking-wide text-charcoal-500">
+      Credit score tier
+    </legend>
+    <div class="mt-2 flex flex-wrap gap-3 text-sm">
+      {
+        TIERS.map((t) => (
+          <label class="flex items-center gap-1.5">
+            <input type="checkbox" name="tier" value={t.slug} checked={tierSet.has(t.slug)} />
+            {t.label}
+          </label>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  {
+    issuers.length > 0 && (
+      <fieldset>
+        <legend class="text-xs font-medium uppercase tracking-wide text-charcoal-500">Issuer</legend>
+        <div class="mt-2 flex flex-wrap gap-3 text-sm">
+          {issuers.map((i) => (
+            <label class="flex items-center gap-1.5">
+              <input type="checkbox" name="issuer" value={i.slug} checked={issuerSet.has(i.slug)} />
+              {i.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    )
+  }
+
+  <label class="flex items-center gap-1.5 text-sm">
+    <input type="checkbox" name="introApr" value="true" checked={filters.introApr === true} />
+    Has intro APR offer
+  </label>
+
+  <div class="flex gap-3">
+    <div class="flex-1">
+      <label for="sort" class="text-xs font-medium uppercase tracking-wide text-charcoal-500">
+        Sort by
+      </label>
+      <select
+        id="sort"
+        name="sort"
+        class="mt-1 w-full rounded border border-charcoal-300 bg-white px-3 py-2 text-sm"
+      >
+        {
+          sortOptions.map((opt) => (
+            <option value={opt.value} selected={(filters.sort ?? '') === opt.value}>
+              {opt.label}
+            </option>
+          ))
+        }
+      </select>
+    </div>
+    <div class="flex-1">
+      <label for="dir" class="text-xs font-medium uppercase tracking-wide text-charcoal-500">
+        Direction
+      </label>
+      <select
+        id="dir"
+        name="dir"
+        class="mt-1 w-full rounded border border-charcoal-300 bg-white px-3 py-2 text-sm"
+      >
+        <option value="asc" selected={filters.dir !== 'desc'}>Low to high</option>
+        <option value="desc" selected={filters.dir === 'desc'}>High to low</option>
+      </select>
+    </div>
+  </div>
+
+  <button
+    type="submit"
+    class="w-full rounded bg-navy-900 px-4 py-2 text-sm font-medium text-paper hover:bg-navy-800"
+  >
+    Apply filters
+  </button>
+</form>

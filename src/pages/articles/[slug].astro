@@ -1,0 +1,70 @@
+---
+import { getCollection, getEntries, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CardResult from '../../components/CardResult.astro';
+import AffiliateDisclosureNotice from '../../components/AffiliateDisclosureNotice.astro';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles');
+  return articles.map((article) => ({ params: { slug: article.id }, props: { article } }));
+}
+
+const { article } = Astro.props;
+const d = article.data;
+const { Content } = await render(article);
+
+const relatedRefs = d.relatedCards.map((slug) => ({ collection: 'cards' as const, id: slug }));
+const relatedCards = relatedRefs.length ? await getEntries(relatedRefs) : [];
+const hasAffiliateLinks = relatedCards.some((c) => Boolean(c.data.affiliateUrl));
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+---
+
+<BaseLayout title={d.title} description={d.description}>
+  <article class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <p class="text-xs uppercase tracking-wide text-charcoal-500">{d.category}</p>
+    <h1 class="font-serif-heading mt-2 text-3xl font-semibold text-navy-900">{d.title}</h1>
+    <p class="mt-2 text-sm text-charcoal-500">
+      Published {formatDate(d.publishDate)}
+      {d.lastUpdated.getTime() !== d.publishDate.getTime() && ` · Updated ${formatDate(d.lastUpdated)}`}
+    </p>
+
+    {relatedCards.length > 0 && hasAffiliateLinks && (
+      <div class="mt-6">
+        <AffiliateDisclosureNotice />
+      </div>
+    )}
+
+    {
+      d.youtubeId && (
+        <div class="mt-6 aspect-video w-full overflow-hidden rounded-lg border border-charcoal-300/60">
+          <iframe
+            class="h-full w-full"
+            src={`https://www.youtube-nocookie.com/embed/${d.youtubeId}`}
+            title={d.title}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          />
+        </div>
+      )
+    }
+
+    <div class="prose prose-slate mt-8 max-w-none">
+      <Content />
+    </div>
+
+    {
+      relatedCards.length > 0 && (
+        <div class="mt-10 border-t border-charcoal-300/60 pt-8">
+          <h2 class="font-serif-heading text-xl font-semibold text-navy-900">Cards mentioned in this article</h2>
+          <div class="mt-4 space-y-4">
+            {relatedCards.map((card) => <CardResult card={card} />)}
+          </div>
+        </div>
+      )
+    }
+  </article>
+</BaseLayout>

@@ -1,0 +1,41 @@
+---
+---
+
+<div
+  id="advertiser-disclosure-bar"
+  class="hidden fixed inset-x-0 bottom-0 z-40 border-t border-amber-600 bg-navy-950 text-paper"
+  role="region"
+  aria-label="Advertiser disclosure"
+>
+  <div class="mx-auto flex max-w-6xl items-start gap-4 px-4 py-3 sm:px-6">
+    <p class="flex-1 text-xs leading-relaxed text-charcoal-300 sm:text-sm">
+      Although we work to give our readers unbiased information, and we include many credit card
+      offers for which we receive no compensation, we are legally required to notify you that we
+      may receive compensation from some of the credit card companies mentioned on this site.
+      This compensation may impact how and where offers appear. This site does not include all
+      available credit card offers.
+    </p>
+    <button
+      type="button"
+      id="dismiss-disclosure"
+      class="shrink-0 rounded border border-charcoal-500 px-2 py-1 text-xs text-charcoal-300 hover:border-amber-500 hover:text-amber-500"
+      aria-label="Dismiss advertiser disclosure"
+    >
+      Dismiss
+    </button>
+  </div>
+</div>
+
+<script>
+  const bar = document.getElementById('advertiser-disclosure-bar');
+  const KEY = 'advertiser-disclosure-dismissed';
+
+  if (bar && window.localStorage.getItem(KEY) !== 'true') {
+    bar.classList.remove('hidden');
+  }
+
+  document.getElementById('dismiss-disclosure')?.addEventListener('click', () => {
+    window.localStorage.setItem(KEY, 'true');
+    bar?.classList.add('hidden');
+  });
+</script>

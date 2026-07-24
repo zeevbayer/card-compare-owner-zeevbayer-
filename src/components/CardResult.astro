@@ -1,0 +1,76 @@
+---
+import type { CardEntry } from '../lib/finder';
+import VerifiedBadge from './VerifiedBadge.astro';
+import { formatFee, formatApr, formatIntroApr } from '../lib/format';
+
+interface Props {
+  card: CardEntry;
+}
+
+const { card } = Astro.props;
+const d = card.data;
+const isAffiliate = Boolean(d.affiliateUrl);
+const applyHref = d.affiliateUrl ?? d.issuerUrl;
+const introAprText = formatIntroApr(d.introApr, d.introAprMonths, d.isDeferredInterest);
+
+const tierLabel: Record<string, string> = {
+  excellent: 'Excellent credit',
+  good: 'Good credit',
+  fair: 'Fair credit',
+  building: 'Building credit',
+};
+---
+
+<article class="rounded-lg border border-charcoal-300/60 bg-white p-5 shadow-sm">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-wide text-charcoal-500">{d.issuer}</p>
+      <h3 class="font-serif-heading mt-0.5 text-lg font-semibold text-navy-900">
+        <a href={`/cards/${d.slug}`} class="hover:text-amber-700">{d.name}</a>
+      </h3>
+    </div>
+    <a
+      href={applyHref}
+      target="_blank"
+      rel={isAffiliate ? 'sponsored nofollow noopener' : 'noopener'}
+      class="inline-block shrink-0 rounded border border-navy-900 px-4 py-2 text-center text-sm font-medium text-navy-900 transition-colors hover:bg-navy-900 hover:text-paper"
+    >
+      View at issuer
+    </a>
+  </div>
+
+  <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
+    <div>
+      <dt class="text-xs text-charcoal-500">Annual fee</dt>
+      <dd class="font-medium text-charcoal-900">{formatFee(d.annualFee)}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-charcoal-500">Purchase APR</dt>
+      <dd class="font-medium text-charcoal-900">{formatApr(d.purchaseAprMin, d.purchaseAprMax)}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-charcoal-500">Credit needed</dt>
+      <dd class="font-medium text-charcoal-900">{tierLabel[d.creditScoreTier]}</dd>
+    </div>
+    <div>
+      <dt class="text-xs text-charcoal-500">Signup bonus</dt>
+      <dd class="font-medium text-charcoal-900">{d.signupBonus ?? 'Not listed'}</dd>
+    </div>
+  </dl>
+
+  {
+    introAprText && (
+      <p class="mt-3 text-sm text-charcoal-700">
+        {introAprText}
+      </p>
+    )
+  }
+
+  {
+    d.rewardsStructure && (
+      <p class="mt-2 text-sm text-charcoal-700">{d.rewardsStructure}</p>
+    )
+  }
+
+  <VerifiedBadge lastVerified={d.lastVerified} class="mt-4 border-t border-charcoal-300/60 pt-3" />
+</article>
