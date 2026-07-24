@@ -1,10 +1,6 @@
-import type { CollectionEntry } from 'astro:content';
-import { isUnverified } from './verification';
-import { slugify } from './slugify';
+import type { CardWithRelations } from './queries';
 
-export type CardEntry = CollectionEntry<'cards'>;
-
-export type SortKey = 'annual-fee' | 'intro-apr-length' | 'signup-bonus';
+export type SortKey = 'annual-fee' | 'intro-apr-length' | 'welcome-offer';
 export type SortDir = 'asc' | 'desc';
 
 export interface FinderFilters {
@@ -12,16 +8,31 @@ export interface FinderFilters {
   feeMax?: number;
   tier?: string[];
   issuer?: string[];
+  cardType?: string;
   introApr?: boolean;
   sort?: SortKey;
   dir?: SortDir;
 }
 
-const SORT_KEYS: SortKey[] = ['annual-fee', 'intro-apr-length', 'signup-bonus'];
+const SORT_KEYS: SortKey[] = ['annual-fee', 'intro-apr-length', 'welcome-offer'];
 
 function multiValues(params: URLSearchParams, key: string): string[] | undefined {
   const values = params.getAll(key).flatMap((v) => v.split(',')).filter(Boolean);
   return values.length ? values : undefined;
+}
+
+export function searchParamsToURLSearchParams(
+  searchParams: Record<string, string | string[] | undefined>
+): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      value.forEach((v) => params.append(key, v));
+    } else if (value !== undefined) {
+      params.set(key, value);
+    }
+  }
+  return params;
 }
 
 export function parseFinderParams(params: URLSearchParams): FinderFilters {
@@ -30,6 +41,7 @@ export function parseFinderParams(params: URLSearchParams): FinderFilters {
   const feeMax = feeMaxRaw !== null && feeMaxRaw !== '' ? Number(feeMaxRaw) : undefined;
   const tier = multiValues(params, 'tier');
   const issuer = multiValues(params, 'issuer');
+  const cardType = params.get('cardType') || undefined;
   const introApr = params.get('introApr') === 'true' ? true : undefined;
   const sortRaw = params.get('sort');
   const sort = SORT_KEYS.includes(sortRaw as SortKey) ? (sortRaw as SortKey) : undefined;
@@ -40,66 +52,50 @@ export function parseFinderParams(params: URLSearchParams): FinderFilters {
     feeMax: Number.isFinite(feeMax) ? feeMax : undefined,
     tier,
     issuer,
+    cardType,
     introApr,
     sort,
     dir,
   };
 }
 
-export function finderFiltersToSearchParams(filters: FinderFilters): URLSearchParams {
-  const params = new URLSearchParams();
-  if (filters.category) params.set('category', filters.category);
-  if (filters.feeMax !== undefined) params.set('feeMax', String(filters.feeMax));
-  if (filters.tier?.length) params.set('tier', filters.tier.join(','));
-  if (filters.issuer?.length) params.set('issuer', filters.issuer.join(','));
-  if (filters.introApr) params.set('introApr', 'true');
-  if (filters.sort) params.set('sort', filters.sort);
-  if (filters.dir && filters.dir !== 'asc') params.set('dir', filters.dir);
-  return params;
-}
-
-/** Cards with no lastVerified date are excluded from finder results by default. */
-export function eligibleCards(cards: CardEntry[]): CardEntry[] {
-  return cards.filter((card) => !isUnverified(card.data.lastVerified));
-}
-
-export function filterCards(cards: CardEntry[], filters: FinderFilters): CardEntry[] {
+export function filterCards(cards: CardWithRelations[], filters: FinderFilters): CardWithRelations[] {
   return cards.filter((card) => {
-    const d = card.data;
-    if (filters.category && !d.categories.includes(filters.category)) return false;
-    if (filters.feeMax !== undefined) {
-      if (d.annualFee === null || d.annualFee > filters.feeMax) return false;
+    if (filters.category && !card.rewardRates.some((r) => r.category.slug === filters.category)) {
+      return false;
     }
-    if (filters.tier?.length && !filters.tier.includes(d.creditScoreTier)) return false;
-    if (filters.issuer?.length && !filters.issuer.includes(slugify(d.issuer))) return false;
-    if (filters.introApr && (d.introApr === null || d.introApr === undefined)) return false;
+    if (filters.feeMax !== undefined) {
+      if (card.annualFee === null || Number(card.annualFee) > filters.feeMax) return false;
+    }
+    if (filters.tier?.length && !filters.tier.includes(card.creditScoreTier)) return false;
+    if (filters.issuer?.length && !filters.issuer.includes(card.issuer.slug)) return false;
+    if (filters.cardType && card.cardType !== filters.cardType) return false;
+    if (filters.introApr && card.introApr === null) return false;
     return true;
   });
 }
 
-function bonusAmount(signupBonus: string | null): number {
-  if (!signupBonus) return -1;
-  const match = signupBonus.replace(/,/g, '').match(/\d+(\.\d+)?/);
-  return match ? Number(match[0]) : -1;
-}
-
-export function sortCards(cards: CardEntry[], sort?: SortKey, dir: SortDir = 'asc'): CardEntry[] {
+export function sortCards(
+  cards: CardWithRelations[],
+  sort?: SortKey,
+  dir: SortDir = 'asc'
+): CardWithRelations[] {
   if (!sort) return cards;
   const sorted = [...cards].sort((a, b) => {
     let av: number;
     let bv: number;
     switch (sort) {
       case 'annual-fee':
-        av = a.data.annualFee ?? Number.POSITIVE_INFINITY;
-        bv = b.data.annualFee ?? Number.POSITIVE_INFINITY;
+        av = a.annualFee !== null ? Number(a.annualFee) : Number.POSITIVE_INFINITY;
+        bv = b.annualFee !== null ? Number(b.annualFee) : Number.POSITIVE_INFINITY;
         break;
       case 'intro-apr-length':
-        av = a.data.introAprMonths ?? -1;
-        bv = b.data.introAprMonths ?? -1;
+        av = a.introAprMonths ?? -1;
+        bv = b.introAprMonths ?? -1;
         break;
-      case 'signup-bonus':
-        av = bonusAmount(a.data.signupBonus);
-        bv = bonusAmount(b.data.signupBonus);
+      case 'welcome-offer':
+        av = a.welcomeOfferEstimatedValue !== null ? Number(a.welcomeOfferEstimatedValue) : -1;
+        bv = b.welcomeOfferEstimatedValue !== null ? Number(b.welcomeOfferEstimatedValue) : -1;
         break;
     }
     return av - bv;
@@ -120,72 +116,127 @@ export const PRESETS: PresetDef[] = [
     slug: 'no-annual-fee',
     title: 'No Annual Fee Credit Cards',
     shortLabel: 'No Annual Fee',
-    intro:
-      'Cards with a $0 annual fee, filtered from our verified card data. No fee does not mean no cost — check the purchase APR and any intro-rate terms below before applying.',
+    intro: 'Cards with a $0 annual fee, filtered from our verified card data.',
     filters: { feeMax: 0, sort: 'annual-fee' },
   },
   {
-    slug: '0-intro-apr',
+    slug: '0-apr',
     title: '0% Intro APR Credit Cards',
-    shortLabel: '0% Intro APR',
+    shortLabel: '0% APR',
     intro:
-      'Cards currently offering an introductory 0% purchase or balance transfer APR. Confirm whether each offer is a true promotional rate or deferred interest before you rely on it — see our explainer on the difference.',
+      'Cards currently offering an introductory 0% purchase or balance transfer APR. Confirm whether each offer is a true promotional rate or deferred interest before you rely on it.',
     filters: { introApr: true, sort: 'intro-apr-length', dir: 'desc' },
   },
   {
-    slug: 'starter-first-card',
-    title: 'Starter Cards for a First-Time Applicant',
-    shortLabel: 'Starter / First Card',
-    intro:
-      'Cards aimed at people building credit for the first time or repairing a fair credit history. These generally approve thinner files than premium travel or cash-back cards.',
+    slug: 'starter-cards',
+    title: 'Starter Credit Cards',
+    shortLabel: 'Starter Cards',
+    intro: 'Cards aimed at people building or repairing credit for the first time.',
     filters: { tier: ['fair', 'building'], sort: 'annual-fee' },
   },
   {
     slug: 'secured-cards',
     title: 'Secured Credit Cards',
     shortLabel: 'Secured Cards',
-    intro:
-      'Secured cards require a refundable cash deposit that typically sets your credit limit. They report to the credit bureaus like any other card and are a common way to build or rebuild credit history.',
+    intro: 'Cards that require a refundable cash deposit and report to the credit bureaus like any other card.',
     filters: { category: 'secured', sort: 'annual-fee' },
-  },
-  {
-    slug: 'cash-back',
-    title: 'Cash Back Credit Cards',
-    shortLabel: 'Cash Back',
-    intro:
-      'Cards that pay a percentage of purchases back as statement credit, direct deposit, or a check. Flat-rate and category-based structures behave very differently depending on how you actually spend.',
-    filters: { category: 'cash-back', sort: 'annual-fee' },
   },
   {
     slug: 'groceries',
     title: 'Best Credit Cards for Groceries',
     shortLabel: 'Groceries',
-    intro:
-      'Cards with elevated rewards at U.S. supermarkets. Category bonuses are frequently capped at an annual or quarterly spending amount — read the fine print on each card page.',
+    intro: 'Cards with elevated rewards at U.S. supermarkets.',
     filters: { category: 'groceries', sort: 'annual-fee' },
   },
   {
     slug: 'gas',
     title: 'Best Credit Cards for Gas',
     shortLabel: 'Gas',
-    intro:
-      'Cards with elevated rewards at gas stations. As with grocery bonuses, gas-category rewards are often capped — the sustained rate can be lower than the headline number suggests.',
+    intro: 'Cards with elevated rewards at gas stations.',
     filters: { category: 'gas', sort: 'annual-fee' },
+  },
+  {
+    slug: 'dining',
+    title: 'Best Credit Cards for Dining',
+    shortLabel: 'Dining',
+    intro: 'Cards with elevated rewards at restaurants.',
+    filters: { category: 'dining', sort: 'annual-fee' },
   },
   {
     slug: 'travel',
     title: 'Best Travel Credit Cards',
     shortLabel: 'Travel',
-    intro:
-      'Cards built around travel rewards: transferable points, airline miles, or elevated travel-category cash back. Many carry an annual fee that only pays off with regular travel spending.',
+    intro: 'Cards built around travel rewards — transferable points, airline miles, or elevated travel-category cash back.',
     filters: { category: 'travel', sort: 'annual-fee' },
+  },
+  {
+    slug: 'luxury-travel',
+    title: 'Best Luxury Travel Credit Cards',
+    shortLabel: 'Luxury Travel',
+    intro: 'Premium travel cards with the deepest benefit libraries — lounge access, elevated status, and travel protections.',
+    filters: { category: 'luxury-travel', sort: 'annual-fee', dir: 'desc' },
+  },
+  {
+    slug: 'airline',
+    title: 'Best Airline Credit Cards',
+    shortLabel: 'Airline Cards',
+    intro: 'Co-branded and transferable-point cards built around airline travel.',
+    filters: { category: 'airline', sort: 'annual-fee' },
+  },
+  {
+    slug: 'hotel',
+    title: 'Best Hotel Credit Cards',
+    shortLabel: 'Hotel Cards',
+    intro: 'Co-branded and transferable-point cards built around hotel stays.',
+    filters: { category: 'hotel', sort: 'annual-fee' },
+  },
+  {
+    slug: 'car-rental',
+    title: 'Best Credit Cards for Car Rental',
+    shortLabel: 'Car Rental',
+    intro: 'Cards with rental car coverage or elevated rewards on rental car spending.',
+    filters: { category: 'car-rental', sort: 'annual-fee' },
+  },
+  {
+    slug: 'home-improvement',
+    title: 'Best Credit Cards for Home Improvement',
+    shortLabel: 'Home Improvement',
+    intro: 'Cards with elevated rewards at home improvement retailers.',
+    filters: { category: 'home-improvement', sort: 'annual-fee' },
+  },
+  {
+    slug: 'office-supplies',
+    title: 'Best Credit Cards for Office Supplies',
+    shortLabel: 'Office Supplies',
+    intro: 'Cards with elevated rewards at office supply retailers.',
+    filters: { category: 'office-supplies', sort: 'annual-fee' },
+  },
+  {
+    slug: 'drug-stores',
+    title: 'Best Credit Cards for Drug Stores',
+    shortLabel: 'Drug Stores',
+    intro: 'Cards with elevated rewards at pharmacies and drug stores.',
+    filters: { category: 'drugstores', sort: 'annual-fee' },
+  },
+  {
+    slug: 'amazon',
+    title: 'Best Credit Cards for Amazon',
+    shortLabel: 'Amazon',
+    intro: 'Cards with elevated rewards on Amazon purchases.',
+    filters: { category: 'amazon', sort: 'annual-fee' },
+  },
+  {
+    slug: 'shipping',
+    title: 'Best Credit Cards for Shipping',
+    shortLabel: 'Shipping',
+    intro: 'Cards with elevated rewards on shipping and postage spending.',
+    filters: { category: 'shipping', sort: 'annual-fee' },
   },
   {
     slug: 'balance-transfer',
     title: 'Best Balance Transfer Credit Cards',
     shortLabel: 'Balance Transfer',
-    intro:
-      'Cards offering an introductory rate on transferred balances, meant to give you time to pay down debt without interest accruing. Compare the transfer fee against what you would actually save in interest.',
+    intro: 'Cards offering an introductory rate on transferred balances.',
     filters: { category: 'balance-transfer', sort: 'intro-apr-length', dir: 'desc' },
   },
 ];

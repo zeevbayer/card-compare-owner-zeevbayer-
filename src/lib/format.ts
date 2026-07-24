@@ -1,23 +1,34 @@
-export function formatFee(fee: number | null): string {
+export function formatFee(fee: string | number | null): string {
   if (fee === null) return 'Not listed';
-  if (fee === 0) return '$0';
-  return `$${fee}`;
+  const n = Number(fee);
+  if (n === 0) return '$0';
+  return `$${n}`;
 }
 
-export function formatApr(min: number | null, max: number | null): string {
+export function formatApr(
+  min: string | number | null,
+  max: string | number | null
+): string {
   if (min === null && max === null) return 'Not listed';
-  if (min !== null && max !== null && min !== max) return `${min}%–${max}%`;
-  const value = min ?? max;
+  const minN = min !== null ? Number(min) : null;
+  const maxN = max !== null ? Number(max) : null;
+  if (minN !== null && maxN !== null && minN !== maxN) return `${minN}%–${maxN}%`;
+  const value = minN ?? maxN;
   return `${value}%`;
 }
 
 export function formatIntroApr(
-  introApr: number | null,
+  introApr: string | number | null,
   months: number | null,
   isDeferredInterest: boolean
 ): string | null {
   if (introApr === null) return null;
   const term = months !== null ? ` for ${months} months` : '';
   const kind = isDeferredInterest ? ' (deferred interest)' : '';
-  return `${introApr}% intro APR${term}${kind}`;
+  return `${Number(introApr)}% intro APR${term}${kind}`;
+}
+
+export function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }

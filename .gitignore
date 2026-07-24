@@ -1,6 +1,7 @@
 # build output
+.next/
+out/
 dist/
-.astro/
 
 # dependencies
 node_modules/
@@ -11,9 +12,14 @@ npm-debug.log*
 
 # env
 .env
+.env.local
 .env.production
 
 # editor / os
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# typescript
+next-env.d.ts
+*.tsbuildinfo
