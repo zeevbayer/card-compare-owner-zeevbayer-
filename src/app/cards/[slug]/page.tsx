@@ -146,23 +146,29 @@ export default async function CardPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Rewards breakdown */}
-      {card.rewardRates.length > 0 && (
-        <div className="mt-8 border-t border-charcoal-300/60 pt-6">
-          <h2 className="font-serif-heading text-lg font-semibold text-navy-900">Rewards breakdown</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            {card.rewardRates.map((r) => (
-              <li key={r.category.slug} className="flex items-center justify-between border-b border-charcoal-300/40 pb-2">
-                <span className="text-charcoal-700">{r.category.label}</span>
-                <span className="font-medium text-charcoal-900">
-                  {r.ratePct !== null ? `${r.ratePct}%` : 'Rate not listed'}
-                  {r.cap ? ` · ${r.cap}` : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Rewards breakdown — only categories with an actual verified rate/note.
+          Category tags with no rate still count toward finder filtering (see card.rewardRates
+          used elsewhere) but showing them here as "Rate not listed" reads as broken data. */}
+      {(() => {
+        const ratedRewards = card.rewardRates.filter((r) => r.ratePct !== null || r.notes !== null);
+        if (ratedRewards.length === 0) return null;
+        return (
+          <div className="mt-8 border-t border-charcoal-300/60 pt-6">
+            <h2 className="font-serif-heading text-lg font-semibold text-navy-900">Rewards breakdown</h2>
+            <ul className="mt-3 space-y-2 text-sm">
+              {ratedRewards.map((r) => (
+                <li key={r.category.slug} className="flex items-center justify-between border-b border-charcoal-300/40 pb-2">
+                  <span className="text-charcoal-700">{r.category.label}</span>
+                  <span className="font-medium text-charcoal-900">
+                    {r.notes ?? (r.ratePct !== null ? `${r.ratePct}%` : '')}
+                    {r.cap ? ` · ${r.cap}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
 
       {/* Credits */}
       {card.credits.length > 0 && (
