@@ -3,13 +3,19 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
+import ApprovalsMonitor from '@/components/ApprovalsMonitor';
 import { getCardBySlug, getAllCardSlugs } from '@/lib/queries';
+import { getApprovalStats, getPublishedSubmissions } from '@/lib/approvals';
 import { formatFee, formatApr, formatIntroApr } from '@/lib/format';
 import { isUnverified } from '@/lib/verification';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
+
+// Approval reports change independently of a deploy, so these pages can't be baked once.
+// Rebuild at most every 5 minutes.
+export const revalidate = 300;
 
 export async function generateStaticParams() {
   const cards = await getAllCardSlugs();
@@ -48,7 +54,11 @@ export default async function CardPage({ params }: PageProps) {
   const applyHref = card.affiliateUrl ?? card.issuerUrl;
   const introAprText = formatIntroApr(card.introApr, card.introAprMonths, card.isDeferredInterest);
   const unverified = isUnverified(card.lastVerified);
-  const approvedCount = card.approvalSubmissions.length;
+
+  const [approvalStats, recentSubmissions] = await Promise.all([
+    getApprovalStats(card.id),
+    getPublishedSubmissions(card.id),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -242,20 +252,12 @@ export default async function CardPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Approvals monitor — phase 2 */}
-      <div className="mt-8 border-t border-charcoal-300/60 pt-6">
-        <h2 className="font-serif-heading text-lg font-semibold text-navy-900">Approvals monitor</h2>
-        {approvedCount > 0 ? (
-          <p className="mt-2 text-sm text-charcoal-700">
-            Based on {approvedCount} community-submitted result{approvedCount === 1 ? '' : 's'}.
-          </p>
-        ) : (
-          <p className="mt-2 text-sm text-charcoal-500">
-            Community-submitted approval data isn&apos;t open yet — this section is reserved for
-            it. Once submissions open, real approval odds will show here instead of a guess.
-          </p>
-        )}
-      </div>
+      <ApprovalsMonitor
+        cardSlug={card.slug}
+        cardName={card.name}
+        stats={approvalStats}
+        submissions={recentSubmissions}
+      />
 
       <p className="mt-8 text-xs text-charcoal-500">
         Categories: {card.rewardRates.map((r) => r.category.label).join(', ') || 'None listed'}

@@ -20,10 +20,15 @@ export default function ResourcesPage() {
         <div className="rounded-lg border border-charcoal-300/60 bg-white p-5">
           <h2 className="font-serif-heading text-lg font-semibold text-navy-900">Approval Database</h2>
           <p className="mt-2 text-sm text-charcoal-700">
-            A community-submitted database of real approval and denial outcomes — credit score,
-            limit, state, and bureau pulled. This needs user accounts and a moderation system, so
-            it&apos;s phase 2 of this build, not live yet.
+            Reader-submitted approval and denial reports — credit score, limit granted, state, and
+            which bureau the issuer pulled. Every report is reviewed before it appears.
           </p>
+          <a
+            href="/approvals"
+            className="mt-3 inline-block text-sm text-amber-700 underline hover:text-amber-600"
+          >
+            Browse the approval database →
+          </a>
         </div>
       </div>
     </div>

@@ -46,16 +46,16 @@ export default async function Header() {
             </button>
             <div className="invisible absolute left-0 top-full z-20 min-w-[200px] rounded border border-navy-700 bg-navy-900 py-2 opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100">
               <Link
-                href="/resources"
+                href="/approvals"
                 className="block px-4 py-2 text-sm text-charcoal-300 hover:bg-navy-800 hover:text-amber-500"
               >
-                Free Guides
+                Approval Database
               </Link>
               <Link
                 href="/resources"
                 className="block px-4 py-2 text-sm text-charcoal-300 hover:bg-navy-800 hover:text-amber-500"
               >
-                Approval Database
+                Free Guides
               </Link>
             </div>
           </div>
@@ -73,6 +73,9 @@ export default async function Header() {
         </Link>
         <Link href="/articles" className="whitespace-nowrap text-charcoal-300 hover:text-amber-500">
           Explore Topics
+        </Link>
+        <Link href="/approvals" className="whitespace-nowrap text-charcoal-300 hover:text-amber-500">
+          Approvals
         </Link>
         <Link href="/resources" className="whitespace-nowrap text-charcoal-300 hover:text-amber-500">
           Resources
