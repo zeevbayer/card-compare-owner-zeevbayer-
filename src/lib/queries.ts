@@ -90,6 +90,42 @@ export async function getArticleCount() {
   return rows.length;
 }
 
+/**
+ * Headline figures for the homepage, computed purely by sorting verified data — deliberately
+ * not a curated "editor's pick". Each is the deterministic winner on one measurable field.
+ */
+export async function getHeadlineFigures() {
+  const cards = await getEligibleCards();
+
+  const withApr = cards.filter((c) => c.purchaseAprMin !== null);
+  const lowestApr = withApr.length
+    ? withApr.reduce((a, b) => (Number(a.purchaseAprMin) <= Number(b.purchaseAprMin) ? a : b))
+    : null;
+
+  const withIntro = cards.filter((c) => c.introAprMonths !== null && c.introApr !== null);
+  const longestIntro = withIntro.length
+    ? withIntro.reduce((a, b) => ((a.introAprMonths ?? 0) >= (b.introAprMonths ?? 0) ? a : b))
+    : null;
+
+  const noFeeRewards = cards.filter(
+    (c) => c.annualFee !== null && Number(c.annualFee) === 0 && c.rewardRates.length > 0
+  );
+
+  const withOffer = cards.filter((c) => c.welcomeOfferDescription !== null);
+
+  return {
+    totalVerified: cards.length,
+    lowestApr,
+    longestIntro,
+    noFeeRewardsCount: noFeeRewards.length,
+    offersCount: withOffer.length,
+    lastVerified: cards.reduce<string | null>((latest, c) => {
+      if (!c.lastVerified) return latest;
+      return !latest || c.lastVerified > latest ? c.lastVerified : latest;
+    }, null),
+  };
+}
+
 /** Category slug -> count of eligible (verified) cards in that category. */
 export async function getCategoryCounts(): Promise<Record<string, number>> {
   const eligible = await getEligibleCards();
@@ -98,6 +134,21 @@ export async function getCategoryCounts(): Promise<Record<string, number>> {
     for (const r of card.rewardRates) {
       counts[r.category.slug] = (counts[r.category.slug] ?? 0) + 1;
     }
+  }
+  return counts;
+}
+
+/**
+ * Preset slug -> how many verified cards that preset actually returns. Counting by category
+ * alone left fee- and tier-based presets ("No Annual Fee", "0% APR") with no number at all,
+ * so run each preset's real filter instead.
+ */
+export async function getPresetCounts(): Promise<Record<string, number>> {
+  const { PRESETS, filterCards } = await import('./finder');
+  const eligible = await getEligibleCards();
+  const counts: Record<string, number> = {};
+  for (const preset of PRESETS) {
+    counts[preset.slug] = filterCards(eligible, preset.filters).length;
   }
   return counts;
 }

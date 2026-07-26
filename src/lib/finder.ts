@@ -244,3 +244,30 @@ export const PRESETS: PresetDef[] = [
 export function getPreset(slug: string): PresetDef | undefined {
   return PRESETS.find((p) => p.slug === slug);
 }
+
+/**
+ * Presets grouped for browsing. A flat list of 19 equal tiles gives the reader no way in;
+ * grouping by the question they're actually asking does.
+ */
+export const PRESET_GROUPS: { heading: string; slugs: string[] }[] = [
+  {
+    heading: 'Your credit situation',
+    slugs: ['starter-cards', 'secured-cards', 'no-annual-fee'],
+  },
+  {
+    heading: 'Carrying or moving a balance',
+    slugs: ['0-apr', 'balance-transfer'],
+  },
+  {
+    heading: 'Everyday spending',
+    slugs: ['groceries', 'gas', 'dining', 'drug-stores', 'amazon'],
+  },
+  {
+    heading: 'Travel',
+    slugs: ['travel', 'luxury-travel', 'airline', 'hotel', 'car-rental'],
+  },
+  {
+    heading: 'Business spending',
+    slugs: ['office-supplies', 'shipping', 'home-improvement'],
+  },
+];
