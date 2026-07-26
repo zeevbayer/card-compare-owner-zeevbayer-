@@ -2,8 +2,8 @@
 @plugin '@tailwindcss/typography';
 
 @theme {
-  --font-serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-display), Georgia, serif;
+  --font-sans: var(--font-body), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   --color-paper: #f7f5f0;
   --color-paper-dim: #efece4;

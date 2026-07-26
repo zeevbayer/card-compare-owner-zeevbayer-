@@ -3,8 +3,11 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AdvertiserDisclosureBar from '@/components/AdvertiserDisclosureBar';
+import { newsreader, publicSans } from './fonts';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cardcompare.example.com';
+
+const fontClasses = `${newsreader.variable} ${publicSans.variable}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -23,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={fontClasses}>
       <body className="flex min-h-screen flex-col bg-paper text-charcoal-900 antialiased">
         <a
           href="#main"
