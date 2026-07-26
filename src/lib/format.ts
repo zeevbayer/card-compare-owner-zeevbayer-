@@ -28,6 +28,14 @@ export function formatIntroApr(
   return `${Number(introApr)}% intro APR${term}${kind}`;
 }
 
+/** Money from a numeric DB column: "500.00" -> "$500", "1500.50" -> "$1,500.50". */
+export function formatMoney(value: string | number | null): string | null {
+  if (value === null) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+}
+
 export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });

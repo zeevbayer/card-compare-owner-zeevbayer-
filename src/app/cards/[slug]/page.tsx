@@ -6,7 +6,7 @@ import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
 import ApprovalsMonitor from '@/components/ApprovalsMonitor';
 import { getCardBySlug, getAllCardSlugs } from '@/lib/queries';
 import { getApprovalStats, getPublishedSubmissions } from '@/lib/approvals';
-import { formatFee, formatApr, formatIntroApr } from '@/lib/format';
+import { formatFee, formatApr, formatIntroApr, formatMoney } from '@/lib/format';
 import { isUnverified } from '@/lib/verification';
 
 interface PageProps {
@@ -85,15 +85,21 @@ export default async function CardPage({ params }: PageProps) {
         </p>
       )}
 
-      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <VerifiedBadge lastVerified={card.lastVerified} />
+      <div className="mt-8 flex flex-col gap-4 rounded-lg border border-charcoal-300/60 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <VerifiedBadge lastVerified={card.lastVerified} />
+          <p className="mt-1 text-xs text-charcoal-500">
+            Applying happens on {card.issuer.name}&apos;s site, not here. Confirm the rate you are
+            offered before you accept it.
+          </p>
+        </div>
         <a
           href={applyHref}
           target="_blank"
           rel={isAffiliate ? 'sponsored nofollow noopener' : 'noopener'}
-          className="inline-block rounded border border-navy-900 px-5 py-2.5 text-center text-sm font-medium text-navy-900 transition-colors hover:bg-navy-900 hover:text-paper"
+          className="inline-block shrink-0 rounded bg-navy-900 px-5 py-2.5 text-center text-sm font-medium text-paper transition-colors hover:bg-navy-800"
         >
-          View at issuer
+          Go to {card.issuer.name}
         </a>
       </div>
 
@@ -141,7 +147,7 @@ export default async function CardPage({ params }: PageProps) {
         <p className="mt-3 text-sm text-charcoal-600">
           Requires{' '}
           {card.welcomeOfferSpendRequirement !== null
-            ? `$${card.welcomeOfferSpendRequirement} in spend`
+            ? `${formatMoney(card.welcomeOfferSpendRequirement)} in spend`
             : 'qualifying spend'}
           {card.welcomeOfferWindow ? ` within ${card.welcomeOfferWindow}` : ''}.
         </p>
@@ -189,7 +195,7 @@ export default async function CardPage({ params }: PageProps) {
               <li key={credit.id}>
                 <p className="font-medium text-charcoal-900">
                   {credit.label}
-                  {credit.valueAmount !== null ? ` — $${credit.valueAmount}` : ''}
+                  {credit.valueAmount !== null ? ` — ${formatMoney(credit.valueAmount)}` : ''}
                   {credit.frequency ? ` (${credit.frequency})` : ''}
                 </p>
                 {credit.redemptionConditions && (

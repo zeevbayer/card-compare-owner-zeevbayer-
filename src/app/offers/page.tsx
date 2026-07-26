@@ -4,7 +4,7 @@ import AffiliateDisclosureNotice from '@/components/AffiliateDisclosureNotice';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { getAllCardsWithRelations } from '@/lib/queries';
 import { isOfferStale, daysUntil } from '@/lib/verification';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatMoney } from '@/lib/format';
 
 export const metadata: Metadata = {
   title: 'Current Signup Bonus Offers',
@@ -48,14 +48,12 @@ export default async function OffersPage() {
                     </Link>
                   </h2>
                 </div>
-                <a
-                  href={applyHref}
-                  target="_blank"
-                  rel={isAffiliate ? 'sponsored nofollow noopener' : 'noopener'}
+                <Link
+                  href={`/cards/${card.slug}`}
                   className="inline-block shrink-0 rounded border border-navy-900 px-4 py-2 text-center text-sm font-medium text-navy-900 transition-colors hover:bg-navy-900 hover:text-paper"
                 >
-                  View at issuer
-                </a>
+                  Full details
+                </Link>
               </div>
 
               <p className="mt-4 text-base font-medium text-charcoal-900">{card.welcomeOfferDescription}</p>
@@ -63,7 +61,7 @@ export default async function OffersPage() {
                 <p className="mt-1 text-sm text-charcoal-600">
                   Requires{' '}
                   {card.welcomeOfferSpendRequirement !== null
-                    ? `$${card.welcomeOfferSpendRequirement} in spend`
+                    ? `${formatMoney(card.welcomeOfferSpendRequirement)} in spend`
                     : 'qualifying spend'}
                   {card.welcomeOfferWindow ? ` within ${card.welcomeOfferWindow}` : ''}.
                 </p>
@@ -75,11 +73,21 @@ export default async function OffersPage() {
                 </p>
               )}
 
-              <div className="mt-4 border-t border-charcoal-300/60 pt-3">
-                <p className="text-xs text-charcoal-500">
-                  Offer verified {card.offerVerified ? formatDate(card.offerVerified) : ''}
-                </p>
-                <VerifiedBadge lastVerified={card.lastVerified} className="mt-1" />
+              <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-charcoal-300/60 pt-3">
+                <div>
+                  <p className="text-xs text-charcoal-500">
+                    Offer verified {card.offerVerified ? formatDate(card.offerVerified) : ''}
+                  </p>
+                  <VerifiedBadge lastVerified={card.lastVerified} className="mt-1" />
+                </div>
+                <a
+                  href={applyHref}
+                  target="_blank"
+                  rel={isAffiliate ? 'sponsored nofollow noopener' : 'noopener'}
+                  className="text-sm text-charcoal-600 underline underline-offset-4 hover:text-amber-700"
+                >
+                  Rates &amp; fees at issuer
+                </a>
               </div>
             </article>
           );
